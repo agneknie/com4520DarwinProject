@@ -1,6 +1,8 @@
 import sys
 import os
 import re
+import json
+from datetime import datetime
 
 originalDirectory = os.getcwd()
 
@@ -9,26 +11,27 @@ originalDirectory = os.getcwd()
 
 stringsFile = open("strings.txt", "r")
 stringsData = stringsFile.read()
+stringsFile.close()
 stringsToFind = stringsData.splitlines()
 
-# Empty 2D array with array for each string to find
-results = [[]] * len(stringsToFind)
+# Empty json object with array for each string to find
+results = {}
+for stringToFind in stringsToFind:
+    results[stringToFind] = []
 
 #---------------------------------------
-# Construct list of files to parse. If arguments were passed to the script,
-# each argument is added as a separate name of file to parse
+# find names of all files to parse
 
-os.chdir("..")
 filesToParse = []
 
+# First argument is directory where text files to parse are
 if len(sys.argv) > 1:
-    for file in sys.argv[1:]:
+    os.chdir(sys.argv[1])
+
+listCurrentDirectory = os.listdir()
+for file in listCurrentDirectory:
+    if file[-4:] == ".txt":
         filesToParse.append(file)
-else:
-    listCurrentDirectory = os.listdir()
-    for file in listCurrentDirectory:
-        if file[-4:] == ".txt":
-            filesToParse.append(file)
             
 #---------------------------------------
 # Open each file and apply a regular expression for every stringToFind to
@@ -38,13 +41,15 @@ for textfileName in filesToParse:
     textfile = open(textfileName, "r")
     textfileText = textfile.read()
     textfile.close()
-    for stringIndex, stringToFind in enumerate(stringsToFind):
+    for stringToFind in stringsToFind:
         matches = re.findall(r"[^.]*" + stringToFind + "[^.]*\.", textfileText, flags=re.IGNORECASE)
-        results[stringIndex] = results[stringIndex] + matches
-
-print(results)
+        results[stringToFind] = results[stringToFind] + matches
 
 #---------------------------------------
+# Change directories to where the command was called from, and write the
+# results in a json format to a json file called data.json
 
 os.chdir(originalDirectory)
-
+resultsFile = open("data_" + datetime.today().strftime("%Y-%m-%d_%H-%M-%S") + ".json", "w")
+resultsFile.write(json.dumps(results))
+resultsFile.close()
