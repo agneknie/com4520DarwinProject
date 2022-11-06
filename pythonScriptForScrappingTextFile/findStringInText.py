@@ -42,16 +42,17 @@ def getNamesOfFilesToParse():
 #---------------------------------------
 # Open each file and apply a regular expression for every stringToFind to
 # the text within
-def parseTextFiles(procNum, filesToParse, stringsToFind, results, finalResults):
+def parseTextFiles(filesToParse, stringsToFind, finalResults, lock):
     print(datetime.today())
     for textfileName in filesToParse:
         textfile = open(textfileName, "r")
         textfileText = textfile.read()
         textfile.close()
-        for stringToFind in stringsToFind:
+        for i, stringToFind in enumerate(stringsToFind):
             matches = re.findall(r"[^.]*" + stringToFind + "[^.]*\.", textfileText, flags=re.IGNORECASE)
-            results[stringToFind] = results[stringToFind] + matches
-    finalResults[procNum] = results
+            if matches:
+                with lock:
+                    finalResults[i] = finalResults[i] + matches
 
 #---------------------------------------
 # Change directories to where the command was called from, and write the
@@ -60,26 +61,27 @@ if __name__ == '__main__':
     stringsToFind = getJSONOfStringsToLookFor()
     namesFilesToParsePerCore = getNamesOfFilesToParse()
     
-    # Empty json object with array for each string to find
-    results = {}
-    for stringToFind in stringsToFind:
-        results[stringToFind] = []
-    
+    # Shared dictionary for processes to use
     manager = Manager()
-    returnDict = manager.dict()
+    lock = manager.Lock()
+    sharedList = manager.list()
+    for i in stringsToFind:
+        sharedList.append([])
+
+    # List of all processes
     jobs = []
     
     for i in range(NUMBEROFCORES):
         jobs.append(Process(target=parseTextFiles,
-        args=[i, namesFilesToParsePerCore[i], stringsToFind, results, returnDict]))
+        args=[namesFilesToParsePerCore[i], stringsToFind, sharedList, lock]))
         jobs[i].start()
 
     for i in jobs:
         i.join()
-    print(returnDict)
-    raise SystemExit(0)
+
+    print(sharedList)
     
     os.chdir(ORIGINALDIRECTORY)
     resultsFile = open("data_" + datetime.today().strftime("%Y-%m-%d_%H-%M-%S") + ".json", "w")
-    resultsFile.write(json.dumps(results))
+    resultsFile.write(json.dumps(list(sharedList)))
     resultsFile.close()
