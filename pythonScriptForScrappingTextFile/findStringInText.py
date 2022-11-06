@@ -63,7 +63,6 @@ if __name__ == '__main__':
     # Empty json object with array for each string to find
     results = {}
     for stringToFind in stringsToFind:
-        results.append
         results[stringToFind] = []
     
     manager = Manager()
