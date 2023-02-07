@@ -71,7 +71,7 @@ Returns:
     results : TODO
 """
 def get_dev_results(model, data_path, results_file, settings, languages=['EN', 'PT'], tokenize_idioms=False, transform=None):
-    dataset = IdiomDataset(os.path.join(data_path, 'dev.csv'), tokenize_idioms=tokenize_idioms)
+    dataset = IdiomDataset(os.path.join(data_path, 'dev.csv'), tokenize_idioms=tokenize_idioms, languages=languages)
     if transform is not None:
         dataset.transform(transform)
     
@@ -110,7 +110,7 @@ Parameters:
         Takes a list of sentences and corresponding MWEs, should return a transformed list of sentences 
 """
 def save_eval_output(model, data_path, results_file, settings, languages=['EN', 'PT'], tokenize_idioms=False, transform=None):
-    dataset = IdiomDataset(os.path.join(data_path, 'eval.csv'), tokenize_idioms=tokenize_idioms)
+    dataset = IdiomDataset(os.path.join(data_path, 'eval.csv'), tokenize_idioms=tokenize_idioms, languages=languages)
     if transform is not None:
         dataset.transform(transform)
     print('First eval sample: ', 
