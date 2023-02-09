@@ -4,6 +4,60 @@ from torch.utils.data import Dataset
 from data.util import tokenize_idiom, load_csv
 from evaluation.get_similarities import get_similarities
 from sentence_transformers import InputExample
+import string
+
+
+def remove_punctuation(s):
+    return s.translate(str.maketrans('', '', string.punctuation))
+
+
+def load_dataset(csv_file, tokenize_idioms=False, tokenize_idioms_ignore_case=True, transform=None, languages=['EN', 'PT']):
+    header, data = load_csv(csv_file)
+    # break down the data into sentences
+    ids = []
+    columns = []
+    sentences = []
+    langs = []
+    MWEs = []
+    for elem in data:
+        if elem[header.index('Language')] not in languages:
+            continue
+        for column in [
+            'sentence1',
+            'sentence2',
+            'sentence_1',
+            'sentence_2',
+            'alternative_1',
+            'alternative_2'
+        ]:
+            if column in header:
+                sentence = elem[header.index(column)]
+                MWE = elem[header.index('MWE1')]
+
+                MWE_replace = None
+                if MWE.lower() not in remove_punctuation(sentence.lower()):
+                    sentence_copy = sentence.translate(str.maketrans('', '', string.punctuation))
+                    start = sentence_copy.lower().find(MWE.lower())
+                    end = start + len(MWE)
+                    MWE_replace = re.sub(sentence_copy[:start] + '(.*)' + sentence_copy[end:], r'\1', sentence_copy, flags=re.I).lower()
+
+                if tokenize_idioms:
+                    sentence = re.sub(MWE, tokenize_idiom(MWE), sentence, flags=re.I*tokenize_idioms_ignore_case)
+
+                ids.append(elem[header.index('ID')])
+                columns.append(column)
+                sentences.append(sentence)
+                langs.append(elem[header.index('Language')])
+                MWEs.append(MWE if MWE_replace is None else MWE_replace)
+
+    if transform is not None:
+        sentences = transform(sentences, MWEs, langs)
+
+    for id, column, sentence in zip(ids, columns, sentences):
+        elem = [row for row in data if row[header.index('ID')] == id][0]
+        elem[column] = sentence
+
+    return header, data
 
 
 """
