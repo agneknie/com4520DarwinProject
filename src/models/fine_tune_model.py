@@ -2,7 +2,7 @@ import math
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.losses import MultipleNegativesRankingLoss, TripletLoss, CosineSimilarityLoss
 from torch.utils.data import DataLoader
-from data.idiom_dataset import PositivesDataset, TripletDataset, SelfEvaluatedDataset
+from data.idiom_dataset import load_dataset, PositivesDataset, TripletDataset, SelfEvaluatedDataset
 
 
 """
@@ -23,7 +23,7 @@ Parameters:
     batch_size : int
         Batch size. Default is 4
     num_epochs : int
-        Number of epochs to train for. Deafult is 4.
+        Number of epochs to train for. Default is 4.
     warmup : float
         Amount of the training data to use for warmup.
     transform : (list[str], list[str]) -> list[str]
@@ -38,10 +38,9 @@ def fine_tune_model(model_path, output_path, train_file,
         batch_size=4, num_epochs=4, warmup=0.1, transform=None):
     
     model = SentenceTransformer(model_path)
+    header, data = load_dataset(train_file, tokenize_idioms=tokenize_idioms, transform=transform, languages=languages)
 
-    positives_dataset = PositivesDataset(train_file, tokenize_idioms=tokenize_idioms, languages=languages)
-    if transform is not None:
-        positives_dataset.transform(transform)
+    positives_dataset = PositivesDataset(header, data, languages=languages)
     positives_dataloader = DataLoader(positives_dataset,  shuffle=True, batch_size=batch_size)
     postitives_loss = MultipleNegativesRankingLoss(model=model)
     print('First positives sample: ',
@@ -49,9 +48,7 @@ def fine_tune_model(model_path, output_path, train_file,
         ' '.join(model.tokenizer.tokenize(positives_dataset[0].texts[1])))
     print('Num positives samples: ', len(positives_dataset))
 
-    triplets_dataset = TripletDataset(train_file, tokenize_idioms=tokenize_idioms, languages=languages)
-    if transform is not None:
-        triplets_dataset.transform(transform)
+    triplets_dataset = TripletDataset(header, data, languages=languages)
     triplets_dataloader = DataLoader(triplets_dataset,  shuffle=True, batch_size=batch_size)
     triplets_loss = TripletLoss(model=model)
     print('First triplet sample: ', 
@@ -97,7 +94,7 @@ Parameters:
     batch_size : int
         Batch size. Default is 4
     num_epochs : int
-        Number of epochs to train for. Deafult is 4.
+        Number of epochs to train for. Default is 4.
     warmup : float
         Amount of the training data to use for warmup.
     transform : (list[str], list[str]) -> list[str]
@@ -112,10 +109,9 @@ def fine_tune_model_baseline(model_path, output_path, train_file,
         batch_size=4, num_epochs=4, warmup=0.1, transform=None):
     
     model = SentenceTransformer(model_path)
+    header, data = load_dataset(train_file, tokenize_idioms=tokenize_idioms, transform=transform, languages=languages)
 
-    dataset = SelfEvaluatedDataset(model, train_file, tokenize_idioms=tokenize_idioms, languages=languages)
-    if transform is not None:
-        dataset.transform(transform)
+    dataset = SelfEvaluatedDataset(header, data, languages=languages)
     dataloader = DataLoader(dataset,  shuffle=True, batch_size=batch_size)
     loss = CosineSimilarityLoss(model=model)
     print('First sample: ',

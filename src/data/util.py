@@ -3,6 +3,7 @@ Utility functions
 """
 import re
 import csv
+import string
 
 
 def load_csv(path):
@@ -27,3 +28,7 @@ def write_csv(data, location):
 
 def tokenize_idiom(phrase):
     return 'ID' + re.sub(r'[\s|-]', '', phrase).lower() + 'ID'
+
+
+def remove_punctuation(s):
+    return s.translate(str.maketrans('', '', string.punctuation))

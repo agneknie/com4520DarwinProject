@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from data.idiom_dataset import IdiomDataset
+from data.idiom_dataset import IdiomDataset, load_dataset
 from data.util import load_csv, write_csv
 from evaluation.SubTask2Evaluator import evaluate_submission
 from evaluation.get_similarities import get_dataset_similarities
@@ -71,9 +71,8 @@ Returns:
     results : TODO
 """
 def get_dev_results(model, data_path, results_file, settings, languages=['EN', 'PT'], tokenize_idioms=False, transform=None):
-    dataset = IdiomDataset(os.path.join(data_path, 'dev.csv'), tokenize_idioms=tokenize_idioms, languages=languages)
-    if transform is not None:
-        dataset.transform(transform)
+    header, data = load_dataset(os.path.join(data_path, 'dev.csv'), tokenize_idioms=tokenize_idioms, transform=transform, languages=languages)
+    dataset = IdiomDataset(header, data ,languages=languages)
     
     print('First dev sample: ', 
         ' '.join(model.tokenizer.tokenize(dataset[0].texts[0])), '\n',
@@ -110,9 +109,8 @@ Parameters:
         Takes a list of sentences and corresponding MWEs, should return a transformed list of sentences 
 """
 def save_eval_output(model, data_path, results_file, settings, languages=['EN', 'PT'], tokenize_idioms=False, transform=None):
-    dataset = IdiomDataset(os.path.join(data_path, 'eval.csv'), tokenize_idioms=tokenize_idioms, languages=languages)
-    if transform is not None:
-        dataset.transform(transform)
+    header, data = load_dataset(os.path.join(data_path, 'eval.csv'), tokenize_idioms=tokenize_idioms, transform=transform, languages=languages)
+    dataset = IdiomDataset(header, data, languages=languages)
     print('First eval sample: ', 
         ' '.join(model.tokenizer.tokenize(dataset[0].texts[0])), '\n',
         ' '.join(model.tokenizer.tokenize(dataset[0].texts[1])))
