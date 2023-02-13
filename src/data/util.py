@@ -31,4 +31,4 @@ def tokenize_idiom(phrase):
 
 
 def remove_punctuation(s):
-    return s.translate(str.maketrans('', '', string.punctuation))
+    return s.translate(str.maketrans('', '', string.punctuation.replace('-', '')))

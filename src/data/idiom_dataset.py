@@ -61,7 +61,10 @@ def load_dataset(csv_file, tokenize_idioms=False, tokenize_idioms_ignore_case=Tr
                     sentence_base = remove_punctuation(sentence_base.lower())
                     start = sentence_base.find(MWE.lower())
                     end = start + len(MWE)
-                    MWE_replace = re.sub(sentence_base[:start] + '(.*)' + sentence_base[end:], r'\1', sentence_copy, flags=re.I)
+                    # regex to find the phrase that has been used as a replacement by matching the text before and after the MWE.
+                    # the text after is shortened to 5 characters as it is possible that there is a second MWE in the sentence,
+                    # causing the a mismatch between the base and replaced versions (though if the MWE is repeated twice in a row this solution won't work)
+                    MWE_replace = re.sub(sentence_base[:start] + '(.*?)' + sentence_base[end:end+5] + '(.*)', r'\1', sentence_copy, flags=re.I)
 
                 if tokenize_idioms:
                     sentence = re.sub(MWE, tokenize_idiom(MWE), sentence, flags=re.I*tokenize_idioms_ignore_case)
@@ -72,6 +75,7 @@ def load_dataset(csv_file, tokenize_idioms=False, tokenize_idioms_ignore_case=Tr
                 langs.append(elem[header.index('Language')])
                 MWEs.append(MWE if MWE_replace is None else MWE_replace)
 
+    # apply the transform to every sentence
     if transform is not None:
         sentences = transform(sentences, MWEs, langs)
 
