@@ -1,9 +1,98 @@
 import re
 import string
+from inspect import signature
 from torch.utils.data import Dataset
-from data.util import tokenize_idiom, load_csv
+from data.util import tokenize_idiom, load_csv, remove_punctuation
 from evaluation.get_similarities import get_similarities
 from sentence_transformers import InputExample
+
+
+"""
+    Load a training, dev or evaluation dataset.
+    Optionally apply tokenization and/or a custom transform function to every sentence
+
+    Parameters:
+        csv_file : str
+            Filepath containing the dataset to load. It should have at least columns: [sentence1, sentence2, Language].
+        tokenize_idioms : bool
+            Whether to use a single token for each MWE. Default is False.
+        tokenize_idioms_ignore_case : bool
+            Whether to ignore case when tokenizing idioms (otherwise only lowercase would be matched). Default is True.
+        transform : (list[str], list[str], list[str]) -> list[str]
+            Takes a list of sentences and corresponding MWEs and languages, should return a transformed list of sentences.
+        languages : list[str]
+            List of languages to include. Default is ['EN', 'PT']
+"""
+def load_dataset(csv_file, tokenize_idioms=False, tokenize_idioms_ignore_case=True, transform=None, languages=['EN', 'PT']):
+    header, data = load_csv(csv_file)
+    # break down the data into sentences
+    ids = []
+    columns = []
+    sentences = []
+    langs = []
+    MWEs = []
+    for elem in data:
+        if elem[header.index('Language')] not in languages:
+            continue
+        for column in [
+            'sentence1',
+            'sentence2',
+            'sentence_1',
+            'sentence_2',
+            'alternative_1',
+            'alternative_2'
+        ]:
+            if column in header:
+                sentence = elem[header.index(column)]
+                if len(sentence) == 0:
+                    continue
+                MWE = elem[header.index('MWE1')]
+
+                # check if the MWE has been replaced with a paraphrase in this sentence
+                # (i.e. if this is an alternative sentence)
+                MWE_replace = None
+                sentence_copy = remove_punctuation(sentence.lower())
+                MWE_copy = remove_punctuation(MWE.lower())
+                if MWE_copy not in sentence_copy:
+                    # get the original sentence (where the idiom has not been replaced)
+                    if 'sentence1' in header:
+                        sentence_base = elem[header.index('sentence1')]
+                    else:
+                        sentence_base = elem[header.index('sentence_1')]
+                    sentence_base = remove_punctuation(sentence_base.lower())
+                    start = sentence_base.find(MWE.lower())
+                    end = start + len(MWE)
+                    # regex to find the phrase that has been used as a replacement by matching the text before and after the MWE.
+                    # the text after is shortened to 5 characters as it is possible that there is a second MWE in the sentence,
+                    # causing the a mismatch between the base and replaced versions (though if the MWE is repeated twice in a row this solution won't work)
+                    MWE_replace = re.sub(sentence_base[:start] + '(.*?)' + sentence_base[end:end+5] + '(.*)', r'\1', sentence_copy, flags=re.I)
+
+                if tokenize_idioms:
+                    sentence = re.sub(MWE, tokenize_idiom(MWE), sentence, flags=re.I*tokenize_idioms_ignore_case)
+
+                ids.append(elem[header.index('ID')])
+                columns.append(column)
+                sentences.append(sentence)
+                langs.append(elem[header.index('Language')])
+                MWEs.append(MWE if MWE_replace is None else MWE_replace)
+
+    # apply the transform to every sentence
+    if transform is not None:
+        # only pass in the amount of parameters that the given function takes
+        sig = signature(transform)
+        if len(sig.parameters) == 1:
+            sentences = transform(sentences)
+        elif len(sig.parameters) == 2:
+            sentences = transform(sentences, MWEs)
+        else:
+            sentences = transform(sentences, MWEs, langs)
+
+    # write the transformed sentences back to the data
+    for id, column, sentence in zip(ids, columns, sentences):
+        elem = [row for row in data if row[header.index('ID')] == id][0]
+        elem[header.index(column)] = sentence
+
+    return header, data
 
 
 """
@@ -14,22 +103,15 @@ class IdiomDataset(Dataset):
     Creates a list of sentence1s, sentence2s and similarities from the given dataset
 
     Parameters:
-        csv_file : str
-            Filepath containing the dataset to load. It should have at least columns: [sentence1, sentence2, Language].
-        tokenize_idioms : bool
-            Whether to use a single token for each MWE. Default is False.
-        tokenize_idioms_ignore_case : bool
-            Whether to ignore case when tokenizing idioms (otherwise only lowercase would be matched). Default is True.
+        header : list[str]
+            Column headers of the csv file
+        data : list[list[str]]
+            Data loaded from the csv file
         languages : list[str]
             List of languages to include. Default is ['EN', 'PT']
     """
-    def __init__(self, csv_file, tokenize_idioms=False, tokenize_idioms_ignore_case=True, languages=['EN', 'PT']):
-        header, data = load_csv(csv_file)
-        if tokenize_idioms:
-            header, data = self.tokenize_all_idioms(header, data, tokenize_idioms_ignore_case)
-
+    def __init__(self, header, data, languages=['EN', 'PT']):
         self.sentence1s, self.sentence2s, self.similarities = [], [], []
-        self.MWE1s, self.MWE2s = [], []
         for elem in data:
             if elem[header.index('Language')] not in languages:
                 continue
@@ -50,63 +132,10 @@ class IdiomDataset(Dataset):
             else:
                 continue
 
-            # save all MWEs in the input so they can be used later for gloss, commonsense etc
-            self.MWE1s.append(elem[header.index('MWE1')])
-            idiom = elem[header.index('MWE1')]
-            if tokenize_idioms:
-                idiom = tokenize_idiom(idiom)
-            if elem[header.index('MWE2')] == 'None':
-                self.MWE2s.append(self.find_replacement(self.sentence1s[-1], self.sentence2s[-1], idiom))
-            else:
-                self.MWE2s.append(elem[header.index('MWE2')])
-
         if None in self.similarities:
             self.similarities = []
         assert len(self.sentence1s) == len(self.sentence2s)
         assert len(self.similarities) == 0 or len(self.similarities) == len(self.sentence1s)
-
-    """
-    Change all MWEs to be a single token
-    """
-    def tokenize_all_idioms(self, header, data, tokenize_idioms_ignore_case=True):
-        if 'sentence1' in header:
-            sentence1_idx = header.index('sentence1')
-            sentence2_idx = header.index('sentence2')
-        else:
-            sentence1_idx = header.index('sentence_1')
-            sentence2_idx = header.index('sentence_2')
-
-        for elem in data:
-            MWE1 = elem[header.index('MWE1')]
-            MWE2 = elem[header.index('MWE2')]
-
-            if MWE1 != 'None':
-                elem[sentence1_idx] = re.sub(MWE1, tokenize_idiom(MWE1), elem[sentence1_idx], flags=re.I*tokenize_idioms_ignore_case)
-            if MWE2 != 'None':
-                elem[sentence2_idx] = re.sub(MWE2, tokenize_idiom(MWE2), elem[sentence2_idx], flags=re.I*tokenize_idioms_ignore_case)
-        return header, data
-
-    """
-    Find the phrase that a MWE has been replaced with 
-    """
-    def find_replacement(self, str1, str2, phrase):
-        str1 = str1.translate(str.maketrans('', '', string.punctuation))
-        str2 = str2.translate(str.maketrans('', '', string.punctuation))
-        
-        start = str1.lower().find(phrase.lower())
-        end = start + len(phrase)
-        return re.sub(str1[:start] + '(.*)' + str1[end:], r'\1', str2, flags=re.I).lower()
-
-    """
-    Applies a transform to every sentence in the dataset
-
-    Parameters:
-        func : (list[str], list[str]) -> list[str]
-            Takes a list of sentences and corresponding MWEs, should return a transformed list of sentences 
-    """
-    def transform(self, func):
-        self.sentence1s = func(self.sentence1s, self.MWE1s)
-        self.sentence2s = func(self.sentence2s, self.MWE2s)
 
     def __len__(self):
         return len(self.sentence1s)
@@ -126,22 +155,15 @@ class SelfEvaluatedDataset(IdiomDataset):
     Parameters:
         model : SentenceTransformer
             Model to evaluate unlabelled sentences.
-        csv_file : str
-            Filepath containing the dataset to load. It should match the training set format. 
-        tokenize_idioms : bool
-            Whether to use a single token for each MWE. Default is False.
-        tokenize_idioms_ignore_case : bool
-            Whether to ignore case when tokenizing idioms (otherwise only lowercase would be matched). Default is True.
+        header : list[str]
+            Column headers of the csv file
+        data : list[list[str]]
+            Data loaded from the csv file
         languages : list[str]
             List of languages to include. Default is ['EN', 'PT']
     """
-    def __init__(self, model, csv_file, tokenize_idioms=False, tokenize_idioms_ignore_case=True, languages=['EN', 'PT']):
-        header, data = load_csv(csv_file)
-        if tokenize_idioms:
-            header, data = self.tokenize_all_idioms(header, data, tokenize_idioms_ignore_case)
-
+    def __init__(self, model, header, data, languages=['EN', 'PT']):
         self.sentence1s, self.sentence2s, self.similarities = [], [], []
-        self.MWE1s, self.MWE2s = [], []
         for elem in data:
             if elem[header.index('Language')] not in languages:
                 continue
@@ -158,16 +180,6 @@ class SelfEvaluatedDataset(IdiomDataset):
             self.sentence1s.append(elem[header.index('sentence_1')])
             self.sentence2s.append(elem[header.index('sentence_2')])
 
-            # save all MWEs in the input so they can be used later for gloss, commonsense etc
-            self.MWE1s.append(elem[header.index('MWE1')])
-            idiom = elem[header.index('MWE1')]
-            if tokenize_idioms:
-                idiom = tokenize_idiom(idiom)
-            if elem[header.index('MWE2')] == 'None':
-                self.MWE2s.append(self.find_replacement(self.sentence1s[-1], self.sentence2s[-1], idiom))
-            else:
-                self.MWE2s.append(elem[header.index('MWE2')])
-
         assert len(self.sentence1s) == len(self.sentence2s)
         assert len(self.similarities) == 0 or len(self.similarities) == len(self.sentence1s)
 
@@ -181,22 +193,15 @@ class PositivesDataset(IdiomDataset):
     Only includes samples that have a similarity of 1.
 
     Parameters:
-        csv_file : str
-            Filepath containing the dataset to load. It should match the training set format. 
-        tokenize_idioms : bool
-            Whether to use a single token for each MWE. Default is False.
-        tokenize_idioms_ignore_case : bool
-            Whether to ignore case when tokenizing idioms (otherwise only lowercase would be matched). Default is True.
+        header : list[str]
+            Column headers of the csv file
+        data : list[list[str]]
+            Data loaded from the csv file
         languages : list[str]
             List of languages to include. Default is ['EN', 'PT']
     """
-    def __init__(self, csv_file, tokenize_idioms=False, tokenize_idioms_ignore_case=True, languages=['EN', 'PT']):
-        header, data = load_csv(csv_file)
-        if tokenize_idioms:
-            header, data = self.tokenize_all_idioms(header, data, tokenize_idioms_ignore_case)
-
+    def __init__(self, header, data, languages=['EN', 'PT']):
         self.sentence1s, self.sentence2s, self.similarities = [], [], []
-        self.MWE1s, self.MWE2s = [], []
         for elem in data:
             if elem[header.index('Language')] not in languages:
                 continue
@@ -207,16 +212,6 @@ class PositivesDataset(IdiomDataset):
                 
             self.sentence1s.append(elem[header.index('sentence_1')])
             self.sentence2s.append(elem[header.index('sentence_2')])
-
-            # save all MWEs in the input so they can be used later for gloss, commonsense etc
-            self.MWE1s.append(elem[header.index('MWE1')])
-            idiom = elem[header.index('MWE1')]
-            if tokenize_idioms:
-                idiom = tokenize_idiom(idiom)
-            if elem[header.index('MWE2')] == 'None':
-                self.MWE2s.append(self.find_replacement(self.sentence1s[-1], self.sentence2s[-1], idiom))
-            else:
-                self.MWE2s.append(elem[header.index('MWE2')])
 
         assert len(self.sentence1s) == len(self.sentence2s)
         assert len(self.similarities) == 0 or len(self.similarities) == len(self.sentence1s)
@@ -235,22 +230,15 @@ class TripletDataset(IdiomDataset):
         alternative_2: negative (incorrect paraphrase)
 
     Parameters:
-        csv_file : str
-            Filepath containing the dataset to load. It should have at least columns: [sentence1, sentence2, Language].
-        tokenize_idioms : bool
-            Whether to use a single token for each MWE. Default is False.
-        tokenize_idioms_ignore_case : bool
-            Whether to ignore case when tokenizing idioms (otherwise only lowercase would be matched). Default is True.
+        header : list[str]
+            Column headers of the csv file
+        data : list[list[str]]
+            Data loaded from the csv file
         languages : list[str]
             List of languages to include. Default is ['EN', 'PT']
     """
-    def __init__(self, csv_file, tokenize_idioms=False, tokenize_idioms_ignore_case=True, languages=['EN', 'PT']):
-        header, data = load_csv(csv_file)
-        if tokenize_idioms:
-            header, data = self.tokenize_all_idioms(header, data, tokenize_idioms_ignore_case)
-
+    def __init__(self, header, data, languages=['EN', 'PT']):
         self.anchors, self.positives, self.negatives = [], [], []
-        self.MWE1s, self.MWE2s, self.MWE3s = [], [], []
         for elem in data:
             if elem[header.index('Language')] not in languages:
                 continue
@@ -261,27 +249,11 @@ class TripletDataset(IdiomDataset):
             self.positives.append(elem[header.index('alternative_1')])
             self.negatives.append(elem[header.index('sentence_2')])
 
-            # save all MWEs in the input so they can be used later for gloss, commonsense etc
-            self.MWE1s.append(elem[header.index('MWE1')])
-            idiom = elem[header.index('MWE1')]
-            if tokenize_idioms:
-                idiom = tokenize_idiom(idiom)
-            self.MWE2s.append(self.find_replacement(self.anchors[-1], self.positives[-1], idiom))
-            self.MWE3s.append(self.find_replacement(self.anchors[-1], self.negatives[-1], idiom))
 
         assert len(self.anchors) == len(self.negatives) and len(self.anchors) == len(self.positives)
-
-    def transform(self, func):
-        self.anchors = func(self.anchors, self.MWE1s)
-        self.positives = func(self.positives, self.MWE2s)
-        self.negatives = func(self.negatives, self.MWE3s)
 
     def __len__(self):
         return len(self.anchors)
 
     def __getitem__(self, idx):
         return InputExample(texts=[self.anchors[idx], self.positives[idx], self.negatives[idx]])
-
-
-
-        
