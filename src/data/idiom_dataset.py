@@ -1,5 +1,6 @@
 import re
 import string
+from inspect import signature
 from torch.utils.data import Dataset
 from data.util import tokenize_idiom, load_csv, remove_punctuation
 from evaluation.get_similarities import get_similarities
@@ -18,7 +19,7 @@ from sentence_transformers import InputExample
         tokenize_idioms_ignore_case : bool
             Whether to ignore case when tokenizing idioms (otherwise only lowercase would be matched). Default is True.
         transform : (list[str], list[str], list[str]) -> list[str]
-            Takes a list of sentences and corresponding MWEs and languages, should return a transformed list of sentences 
+            Takes a list of sentences and corresponding MWEs and languages, should return a transformed list of sentences.
         languages : list[str]
             List of languages to include. Default is ['EN', 'PT']
 """
@@ -77,7 +78,14 @@ def load_dataset(csv_file, tokenize_idioms=False, tokenize_idioms_ignore_case=Tr
 
     # apply the transform to every sentence
     if transform is not None:
-        sentences = transform(sentences, MWEs, langs)
+        # only pass in the amount of parameters that the given function takes
+        sig = signature(transform)
+        if len(sig.parameters) == 1:
+            sentences = transform(sentences)
+        elif len(sig.parameters) == 2:
+            sentences = transform(sentences, MWEs)
+        else:
+            sentences = transform(sentences, MWEs, langs)
 
     # write the transformed sentences back to the data
     for id, column, sentence in zip(ids, columns, sentences):
@@ -249,7 +257,3 @@ class TripletDataset(IdiomDataset):
 
     def __getitem__(self, idx):
         return InputExample(texts=[self.anchors[idx], self.positives[idx], self.negatives[idx]])
-
-
-
-        
