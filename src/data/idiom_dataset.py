@@ -31,6 +31,10 @@ def load_dataset(csv_file, tokenize_idioms=False, tokenize_idioms_ignore_case=Tr
     sentences = []
     langs = []
     MWEs = []
+    contexts = []
+    no_contexts = False
+    if 'Sentence_Before' not in header or 'Sentence_After' not in header:
+        no_contexts = True
     for elem in data:
         if elem[header.index('Language')] not in languages:
             continue
@@ -75,6 +79,8 @@ def load_dataset(csv_file, tokenize_idioms=False, tokenize_idioms_ignore_case=Tr
                 sentences.append(sentence)
                 langs.append(elem[header.index('Language')])
                 MWEs.append(MWE if MWE_replace is None else MWE_replace)
+                if not no_contexts:
+                    contexts.append((elem[header.index('Sentence_Before')],elem[header.index('Sentence_After')]))
 
     # apply the transform to every sentence
     if transform is not None:
@@ -84,8 +90,10 @@ def load_dataset(csv_file, tokenize_idioms=False, tokenize_idioms_ignore_case=Tr
             sentences = transform(sentences)
         elif len(sig.parameters) == 2:
             sentences = transform(sentences, MWEs)
-        else:
+        elif len(sig.parameters) == 3:
             sentences = transform(sentences, MWEs, langs)
+        else:
+            sentences = transform(sentences, MWEs, langs, contexts)
 
     # write the transformed sentences back to the data
     for id, column, sentence in zip(ids, columns, sentences):
@@ -94,6 +102,37 @@ def load_dataset(csv_file, tokenize_idioms=False, tokenize_idioms_ignore_case=Tr
 
     return header, data
 
+"""
+    Trnsformation to add paragraph wide context to target sentences
+    Parameters:
+        target : list[str]
+            List of Target sentneces to add previous and next sentences to
+        context : list[(str, str)]
+            List of Tuples with two strings containing the previous and next sentences 
+        mwes and langs parameters are not used but necessary as the contexts in the transform
+"""
+def para_context_transform(targets, mwes, langs, contexts):
+    for i in range(len(targets)):
+        targets[i] = add_context(targets[i], contexts[i])
+    return targets
+
+"""
+    Helper function for adding paragraph wide context to sentence
+    Checks that the target string is valid (not empty) before adding context
+    Parameters:
+        target : str
+            Target sentnece to add previous and next sentences to
+        context : (str, str)
+            Tuple with two strings containing the previous and next sentences 
+"""
+def add_context(target, context):
+    # skip if target sentnece is falsy (None, or empty string)
+    if not target:
+        return target
+    if target == 'empty':
+        return target
+    before, after = context
+    return before + ' ' + target + ' ' + after
 
 """
 Dataset where samples contain two sentences and an optional similarity
