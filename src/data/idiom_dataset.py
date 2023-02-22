@@ -32,9 +32,9 @@ def load_dataset(csv_file, tokenize_idioms=False, tokenize_idioms_ignore_case=Tr
     langs = []
     MWEs = []
     contexts = []
-    no_contexts = False
+    has_contexts = True
     if 'Sentence_Before' not in header or 'Sentence_After' not in header:
-        no_contexts = True
+        has_contexts = False
     for elem in data:
         if elem[header.index('Language')] not in languages:
             continue
@@ -79,7 +79,7 @@ def load_dataset(csv_file, tokenize_idioms=False, tokenize_idioms_ignore_case=Tr
                 sentences.append(sentence)
                 langs.append(elem[header.index('Language')])
                 MWEs.append(MWE if MWE_replace is None else MWE_replace)
-                if not no_contexts:
+                if has_contexts:
                     contexts.append((elem[header.index('Sentence_Before')],elem[header.index('Sentence_After')]))
 
     # apply the transform to every sentence
