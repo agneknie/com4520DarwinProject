@@ -1,8 +1,10 @@
 import math
+import os
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.losses import MultipleNegativesRankingLoss, TripletLoss, CosineSimilarityLoss
 from torch.utils.data import DataLoader
-from data.idiom_dataset import load_dataset, PositivesDataset, TripletDataset, SelfEvaluatedDataset
+from data.idiom_dataset import load_dataset, PositivesDataset, TripletDataset, SelfEvaluatedDataset, IdiomDataset
+from evaluation.IdiomEvaluator import IdiomEvaluator
 
 
 """
@@ -39,7 +41,7 @@ Returns:
         The fine-tuned model. It is also saved at the given path.
 """
 def fine_tune_model(model_path, output_path, train_file,
-        tokenize_idioms=False, languages=['EN', 'PT'],
+        tokenize_idioms=False, languages=['EN', 'PT'], dev_eval_path=None,
         batch_size=4, num_epochs=4, warmup=0.1, checkpoint_path=None, checkpoint_save_steps=None,
         transform=None):
     
@@ -65,6 +67,16 @@ def fine_tune_model(model_path, output_path, train_file,
 
     print('Total samples: ', len(positives_dataset) + len(triplets_dataset))
 
+    evaluator = None
+    if dev_eval_path is not None:
+        evaluator = IdiomEvaluator(
+            dev_eval_path, 
+            save_path=os.path.join(output_path, 'eval'),
+            tokenize_idioms=tokenize_idioms,
+            transform=transform,
+            languages=languages
+            )
+
     train_objectives = [(positives_dataloader, postitives_loss), (triplets_dataloader, triplets_loss)]
     if checkpoint_path is not None and checkpoint_save_steps is None:
         checkpoint_save_steps = min([len(obj[0]) for obj in train_objectives])
@@ -74,7 +86,7 @@ def fine_tune_model(model_path, output_path, train_file,
 
     # Train the model
     model.fit(train_objectives=train_objectives,
-        evaluator=None,
+        evaluator=evaluator,
         epochs=num_epochs,
         evaluation_steps=0,
         warmup_steps=warmup_steps,
