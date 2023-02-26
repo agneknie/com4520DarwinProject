@@ -4,7 +4,7 @@ from sentence_transformers import SentenceTransformer
 from sentence_transformers.losses import MultipleNegativesRankingLoss, TripletLoss, CosineSimilarityLoss
 from torch.utils.data import DataLoader
 from data.idiom_dataset import load_dataset, PositivesDataset, TripletDataset, SelfEvaluatedDataset, IdiomDataset
-from evaluation.IdiomEvaluator import IdiomEvaluator
+from evaluation.idiom_evaluator import IdiomEvaluator
 
 
 """

@@ -32,7 +32,9 @@ class IdiomEvaluator(SentenceEvaluator):
 
     def __call__(self, model, output_path, epoch, steps):
         sims = get_dataset_similarities(self.dataset, model)
-
+        results_data = [
+                ['Settings', 'Languages', 'Spearman Rank ALL', 'Spearman Rank Idiom Data', 'Spearman Rank STS Data']
+                ]
         for languages in [[lang] for lang in self.languages] + ([self.languages] if len(self.languages) > 1 else []):
 
             sims_dict = {}
@@ -51,6 +53,8 @@ class IdiomEvaluator(SentenceEvaluator):
             predictions_no_sts = []
 
             for elem in self.gold_data :
+                if elem[self.gold_header.index('Language')] not in languages:
+                    continue
                 this_sim = elem[ self.gold_header.index( 'sim' ) ]
                 if this_sim == '' : 
                     this_sim = sims_dict[ elem[ self.gold_header.index( 'otherID' ) ] ]
@@ -71,19 +75,19 @@ class IdiomEvaluator(SentenceEvaluator):
             corel_sts, pvalue    =  spearmanr(gold_labels_sts   , predictions_sts    ) 
             corel_no_sts, pvalue =  spearmanr(gold_labels_no_sts, predictions_no_sts ) 
 
-            if self.save_path is not None:
-                sims_data = [['ID', 'Language', 'Setting', 'Sim']]
-                for (elem, sim) in zip(self.data, sims):
-                    sims_data.append([
-                        elem[self.header.index('ID')], elem[self.header.index('Language')], 'fine_tune', sim
-                    ])
-                write_csv(sims_data, os.path.join(self.save_path, f'sims_{epoch}.csv'))
-
-                results_data = [
-                    ['Settings', 'Languages', 'Spearman Rank ALL', 'Spearman Rank Idiom Data', 'Spearman Rank STS Data'],
-                    ['fine_tune', ','.join(languages), corel_all, corel_no_sts, corel_sts]
-                    ]
-                write_csv(results_data, os.path.join(self.save_path, f'results_{epoch}.csv'))
+            results_data.append(
+                ['fine_tune', ','.join(languages), corel_all, corel_no_sts, corel_sts]
+            )
 
         # in the last iteration languages == self.languages so this is fine
+        if self.save_path is not None:
+            sims_data = [['ID', 'Language', 'Setting', 'Sim']]
+            for (elem, sim) in zip(self.data, sims):
+                sims_data.append([
+                    elem[self.header.index('ID')], elem[self.header.index('Language')], 'fine_tune', sim
+                ])
+            write_csv(sims_data, os.path.join(self.save_path, f'sims_{epoch}.csv'))
+
+            write_csv(results_data, os.path.join(self.save_path, f'results_{epoch}.csv'))
+
         return corel_all
