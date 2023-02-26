@@ -22,6 +22,8 @@ Parameters:
         Whether to use a single token for each MWE. Default is False.
     languages : list[str]
         List of languages to include. Default is ['EN', 'PT']
+    dev_eval_path : str
+        Path to the directory containing dev and eval datasets
     batch_size : int
         Batch size. Default is 4
     num_epochs : int
