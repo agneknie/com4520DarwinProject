@@ -45,10 +45,10 @@ def set_seed(seed: int):
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument('--base_model', help='The model to fine tune', required=True)
-parser.add_argument('--output_path', help='Path to store the final model at', required=True)
+parser.add_argument('--base-model', help='The model to fine tune', required=True)
+parser.add_argument('--output-path', help='Path to store the final model at', required=True)
 parser.add_argument('--train-file', help='Path to train data csv', required=True)
-parser.add_argument('--num_epochs', help='Number of epochs to train for', required=True, type=int)
+parser.add_argument('--num-epochs', help='Number of epochs to train for', required=True, type=int)
 parser.add_argument('--en', action='store_true', help='Train on english data')
 parser.add_argument('--pt', action='store_true', help='Train on portuguese data')
 parser.add_argument('--tokenize-idioms', action='store_true', help='Include extra tokens for idioms')
@@ -72,8 +72,8 @@ set_seed(args.seed)
 dev_eval_path = os.path.join(subtask_b_dataset_path, 'EvaluationData')
 
 model = fine_tune_model(
-    args.base_model_path,
-    args.model_output_path,
+    args.base_model,
+    args.output_path,
     args.train_file,
     dev_eval_path=dev_eval_path,
     tokenize_idioms=args.tokenize_idioms,
