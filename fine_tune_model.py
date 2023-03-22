@@ -5,8 +5,7 @@ import numpy as np
 import random
 import torch
 
-from sentence_transformers import SentenceTransformer
-
+from models.fine_tune_model import fine_tune_model
 
 
 def set_seed(seed: int):
@@ -58,13 +57,9 @@ if not args.en and not args.pt:
     raise Exception('Must choose at least one of English and Portuguese')
 languages = ['EN'] * args.en + ['PT'] * args.pt
 
-#sys.path.append( '%s/com4520DarwinProject/src' % args.repo_path)
-from models.fine_tune_model import fine_tune_model
-
-set_seed(args.seed)
-
 
 # Train the model
+set_seed(args.seed)
 
 dev_eval_path = os.path.join(subtask_b_dataset_path, 'EvaluationData')
 
