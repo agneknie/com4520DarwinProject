@@ -42,6 +42,7 @@ parser.add_argument('--base-model', help='The model to fine tune', required=True
 parser.add_argument('--output-path', help='Path to store the final model at', required=True)
 parser.add_argument('--train-file', help='Path to train data csv', required=True)
 parser.add_argument('--num-epochs', help='Number of epochs to train for', required=True, type=int)
+parser.add_argument('--batch-size', help='Batch size', required=True, type=int)
 parser.add_argument('--en', action='store_true', help='Train on english data')
 parser.add_argument('--pt', action='store_true', help='Train on portuguese data')
 parser.add_argument('--tokenize-idioms', action='store_true', help='Include extra tokens for idioms')
@@ -80,5 +81,6 @@ model = fine_tune_model(
     dev_eval_path=dev_eval_path,
     tokenize_idioms=args.tokenize_idioms,
     languages=languages,
-    num_epochs=args.num_epochs
+    num_epochs=args.num_epochs,
+    batch_size=args.batch_size
     )
