@@ -47,7 +47,6 @@ parser.add_argument('--en', action='store_true', help='Train on english data')
 parser.add_argument('--pt', action='store_true', help='Train on portuguese data')
 parser.add_argument('--tokenize-idioms', action='store_true', help='Include extra tokens for idioms')
 parser.add_argument('--seed', help='Random seed', required=True, type=int)
-parser.add_argument('--repo-path', help='Path to the parent of the com4520... folder, on Bessemer this is /home/$USER e.g. /home/aca19aa')
 parser.set_defaults(en=False, pt=False, tokenize_idioms=False)
 
 args = parser.parse_args()
@@ -59,13 +58,8 @@ if not args.en and not args.pt:
     raise Exception('Must choose at least one of English and Portuguese')
 languages = ['EN'] * args.en + ['PT'] * args.pt
 
-sys.path.append( '%s/com4520DarwinProject/src' % args.args.repo_path)
-from data.pre_train_dataset import make_pre_train_dataset
-from models.pre_train_model import make_pre_train_model
-from data.extract_idioms import extract_idioms
-from evaluation.evaluate import get_dev_results, format_results, save_eval_output
+#sys.path.append( '%s/com4520DarwinProject/src' % args.repo_path)
 from models.fine_tune_model import fine_tune_model
-from visualisation.plot import plot_spearman_epochs
 
 set_seed(args.seed)
 
