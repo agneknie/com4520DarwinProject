@@ -6,6 +6,7 @@ import random
 import torch
 
 from models.fine_tune_model import fine_tune_model
+from data.idiom_dataset import para_context_transform
 
 
 def set_seed(seed: int):
@@ -43,11 +44,12 @@ parser.add_argument('--train-file', help='Path to train data csv', required=True
 parser.add_argument('--dev-path', help='Path to dir containing dev data e.g. data/datasets/semeval.../EvaluationData', required=True)
 parser.add_argument('--num-epochs', help='Number of epochs to train for', required=True, type=int)
 parser.add_argument('--batch-size', help='Batch size', required=True, type=int)
+parser.add_argument('--include-para-context', action='store_true', help='Append previous and next sentences')
 parser.add_argument('--en', action='store_true', help='Train on english data')
 parser.add_argument('--pt', action='store_true', help='Train on portuguese data')
 parser.add_argument('--tokenize-idioms', action='store_true', help='Include extra tokens for idioms')
 parser.add_argument('--seed', help='Random seed', required=True, type=int)
-parser.set_defaults(en=False, pt=False, tokenize_idioms=False)
+parser.set_defaults(en=False, pt=False, tokenize_idioms=False, include_para_context=False)
 
 args = parser.parse_args()
 
@@ -56,10 +58,14 @@ if not args.en and not args.pt:
     raise Exception('Must choose at least one of English and Portuguese')
 languages = ['EN'] * args.en + ['PT'] * args.pt
 
+if args.include_para_context:
+    transform = para_context_transform
+else:
+    transform = None
 
-# Train the model
 set_seed(args.seed)
 
+# Train the model
 model = fine_tune_model(
     args.base_model,
     args.output_path,
@@ -68,5 +74,6 @@ model = fine_tune_model(
     tokenize_idioms=args.tokenize_idioms,
     languages=languages,
     num_epochs=args.num_epochs,
-    batch_size=args.batch_size
+    batch_size=args.batch_size,
+    transform=transform
     )
