@@ -40,6 +40,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--base-model', help='The model to fine tune', required=True)
 parser.add_argument('--output-path', help='Path to store the final model at', required=True)
 parser.add_argument('--train-file', help='Path to train data csv', required=True)
+parser.add_argument('--dev-path', help='Path to dir containing dev data e.g. data/datasets/semeval.../EvaluationData', required=True)
 parser.add_argument('--num-epochs', help='Number of epochs to train for', required=True, type=int)
 parser.add_argument('--batch-size', help='Batch size', required=True, type=int)
 parser.add_argument('--en', action='store_true', help='Train on english data')
@@ -50,8 +51,6 @@ parser.set_defaults(en=False, pt=False, tokenize_idioms=False)
 
 args = parser.parse_args()
 
-base_path = os.path.join(os.getcwd())
-subtask_b_dataset_path = os.path.join(base_path, 'data', 'datasets', 'SemEval_2022_Task2_SubTaskB')
 
 if not args.en and not args.pt:
     raise Exception('Must choose at least one of English and Portuguese')
@@ -61,13 +60,11 @@ languages = ['EN'] * args.en + ['PT'] * args.pt
 # Train the model
 set_seed(args.seed)
 
-dev_eval_path = os.path.join(subtask_b_dataset_path, 'EvaluationData')
-
 model = fine_tune_model(
     args.base_model,
     args.output_path,
     args.train_file,
-    dev_eval_path=dev_eval_path,
+    dev_eval_path=args.dev_path,
     tokenize_idioms=args.tokenize_idioms,
     languages=languages,
     num_epochs=args.num_epochs,
