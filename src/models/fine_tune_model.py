@@ -75,7 +75,6 @@ def fine_tune_model(model_path, output_path, train_file,
             dev_eval_path, 
             save_path=os.path.join(output_path, 'eval'),
             tokenize_idioms=tokenize_idioms,
-            transform=transform,
             languages=languages
             )
 
