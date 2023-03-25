@@ -31,5 +31,5 @@ git checkout framework-hpc
 pip install -r requirements.txt
 conda-develop $dir/com4520DarwinProject/src
 
-python fine_tune_model.py --en --include-para-context --num-epochs=4 --batch-size=32 --seed=4 --tokenize-idioms --base-model="$dir/base_model_tokenized" --train-file="$dir/silver_1.csv" --dev-path="$dir/com4520DarwinProject/data/datasets/SemEval_2022_Task2_SubTaskB/EvaluationData" --output-path="$dir/model_silver_para"
+python hpc/fine_tune_model.py --en --include-para-context --num-epochs=4 --batch-size=32 --seed=4 --tokenize-idioms --base-model="$dir/base_model_tokenized" --train-file="$dir/silver_1.csv" --dev-path="$dir/com4520DarwinProject/data/datasets/SemEval_2022_Task2_SubTaskB/EvaluationData" --output-path="$dir/model_silver_para"
 
