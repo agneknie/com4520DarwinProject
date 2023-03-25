@@ -29,7 +29,13 @@ def plot_spearman_epochs(model_path, column, settings=['fine_tune'], languages=[
             if row[header.index('Settings')] == settings[0] and row[header.index('Languages')] == ','.join(languages):
                 scores.append(float(row[header.index(column)]))
 
-    plt.plot(range(1, len(scores)+1), scores, label=column, **kwargs)
+    if 'label' in kwargs:
+        label = kwargs['label']
+        del kwargs['label']
+    else:
+        label = column
+
+    plt.plot(range(1, len(scores)+1), scores, label=label, **kwargs)
     plt.xlabel('Epochs')
     plt.ylabel('Spearman Rank')
     plt.xticks(range(1, len(scores)+1))
