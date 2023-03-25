@@ -2,11 +2,11 @@
 # 16GB of RAM
 #SBATCH --mem=16G
 # email 
-#SBATCH --mail-user=aallsebrook1@sheffield.ac.uk
+#SBATCH --mail-user=@sheffield.ac.uk
 #SBATCH --mail-type=BEGIN,END,FAIL
 # set job name
-#SBATCH --job-name=fine_tune_silver_para
-# set output path to [job_name].[job_id].out
+#SBATCH --job-name=fine_tune
+# set output path to R-[job_name].[job_id].out
 #SBATCH --output=R-%x.%j.out
 # get gpu
 #SBATCH --partition=gpu
@@ -27,7 +27,7 @@ dir=$(pwd)
 
 git clone https://oauth2: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@github.com/agneknie/com4520DarwinProject.git
 cd com4520DarwinProject
-git checkout framework-hpc
+git checkout framework
 pip install -r requirements.txt
 conda-develop $dir/com4520DarwinProject/src
 
