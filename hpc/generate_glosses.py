@@ -18,13 +18,6 @@ if __name__ == '__main__':
 
     glosses = Glosses(args.n_glosses)
 
-    header, data = load_dataset(
-        args.input_file, transform=glosses.get_gloss_list)
+    header, data = load_dataset(args.input_file, transform=glosses.get_individual_glosses)
 
-    gloss_data = [
-            [row[header.index('ID')], column] + row[header.index(column)]
-            for row in data
-            for column in ['sentence_1', 'sentence_2', 'alternative_1', 'alternative_2']
-            if isinstance(row[header.index(column)], list)    ]
-
-    write_csv(gloss_data, args.output_file)
+    write_csv([header] + data, args.output_file)
