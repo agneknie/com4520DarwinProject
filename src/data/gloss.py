@@ -41,7 +41,7 @@ class Glosses:
 
         write_csv([header] + data, self.gloss_cache_file)
 
-    def get_individual_glosses(self, sentences, MWEs):
+    def get_gloss_transform(self, sentences, MWEs):
         gloss_strings = []
         for mwe in MWEs:
             words = mwe.lower().split(' ')
@@ -59,23 +59,25 @@ class Glosses:
         self.save_glosses()
         return [sentence + '[SEP]' + gloss for (sentence, gloss) in zip(sentences, gloss_strings)]
 
+    # kind of a hacky way to use load_dataset transform, 
+    # instead of returning sentences as expected we are returning a list of glosses for each sentence
+    def get_gloss_list(self, sentences, MWEs):
+        gloss_lists = []
+        for mwe in MWEs:
+            words = mwe.lower().split(' ')
+            gloss_list = []
+            for word in words:
+                if word not in self.glosses:
+                    self.glosses[word] = [synset.definition().capitalize()
+                                          for synset in wn.synsets(word)]
 
-if __name__ == '__main__':
-    import argparse
-    from data.idiom import load_dataset
-    import sys
+                for i in range(0, self.n_glosses):
+                    if len(self.glosses[word]) > i:
+                        gloss_list.append(self.glosses[word][i])
+                    else:
+                        gloss_list.append('')
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--n-glosses', type=int)
-    parser.add_argument('input-file', type=str)
-    parser.add_argument('output-file', type=str)
-    parser.add_argument('--root', type=str, default='.')
-    args = parser.parse_args()
+            gloss_lists.append(gloss_list)
 
-    sys.path.append(args.root)
-
-    glosses = Glosses(args.n_glosses)
-
-    header, data = load_dataset(args.input_file, transform=glosses.get_individual_glosses)
-
-    write_csv([header] + data, args.output_file)
+        self.save_glosses()
+        return gloss_lists
