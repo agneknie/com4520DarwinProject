@@ -1,11 +1,43 @@
 import math
 import os
+import torch
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.losses import MultipleNegativesRankingLoss, TripletLoss, CosineSimilarityLoss
 from torch.utils.data import DataLoader, RandomSampler, BatchSampler
 from data.idiom_dataset import load_dataset, PositivesDataset, TripletDataset, SelfEvaluatedDataset, IdiomDataset, get_dataset_maps, BatchDataset
 from evaluation.idiom_evaluator import IdiomEvaluator
 
+
+# https://github.com/UKPLab/sentence-transformers/blob/3e1929fddef16df94f8bc6e3b10598a98f46e62d/sentence_transformers/SentenceTransformer.py#L529
+# modified to work with BatchDataset
+def smart_batching_collate(self, batch):
+    """
+    Transforms a batch from a SmartBatchingDataset to a batch of tensors for the model
+    Here, batch is a list of tuples: [(tokens, label), ...]
+    :param batch:
+        a batch from a SmartBatchingDataset
+    :return:
+        a batch of tensors for the model
+    """
+    batch = batch[0]
+    num_texts = len(batch[0].texts)
+    texts = [[] for _ in range(num_texts)]
+    labels = []
+
+    for example in batch:
+        for idx, text in enumerate(example.texts):
+            texts[idx].append(text)
+
+        labels.append(example.label)
+
+    labels = torch.tensor(labels)
+
+    sentence_features = []
+    for idx in range(num_texts):
+        tokenized = self.tokenize(texts[idx])
+        sentence_features.append(tokenized)
+
+    return sentence_features, labels
 
 """
 Fine-tune a model on some data.
@@ -50,7 +82,8 @@ def fine_tune_model(model_path, output_path, train_file,
     model = SentenceTransformer(model_path)
 
     if load_in_batches:
-        positives_index, triplets_index, n_rows = get_dataset_maps(train_file, languages=languages, chunksize=batch_size)
+        positives_index, triplets_index, n_rows = get_dataset_maps(train_file, languages=languages, chunksize=1000)
+        print(len(positives_index), len(triplets_index))
 
         positives_dataset = BatchDataset(train_file, positives_index, n_rows, 'positives', tokenize_idioms=tokenize_idioms, transform=transform)
         positives_dataloader = DataLoader(
@@ -69,6 +102,9 @@ def fine_tune_model(model_path, output_path, train_file,
             ),
         )
         first_triplet = triplets_dataset[[0]][0]
+
+        # ridiculous hack https://stackoverflow.com/questions/394770/override-a-method-at-instance-level
+        model.smart_batching_collate = smart_batching_collate.__get__(model, SentenceTransformer)
     else:
         header, data = load_dataset(train_file, tokenize_idioms=tokenize_idioms, transform=transform, languages=languages)
 
@@ -193,3 +229,4 @@ def fine_tune_model_baseline(model_path, output_path, train_file,
         )
 
     return model
+

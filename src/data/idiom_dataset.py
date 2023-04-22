@@ -1,5 +1,6 @@
 import re
 import pandas as pd
+import numpy as np
 import string
 from inspect import signature
 from torch.utils.data import Dataset
@@ -304,14 +305,13 @@ class TripletDataset(IdiomDataset):
         return InputExample(texts=[self.anchors[idx], self.positives[idx], self.negatives[idx]])
 
 
-# if tokenize_idioms:
-#     sentence = re.sub(MWE, tokenize_idiom(MWE), sentence, flags=re.I*tokenize_idioms_ignore_case)
 def get_dataset_maps(filepath, languages=['EN', 'PT'], chunksize=5000):
     positives = []
     triplets = []
     n_rows = 0
     with pd.read_csv(filepath, chunksize=chunksize) as reader:
         for chunk in reader:
+            chunk = chunk.replace('None', np.nan).astype({'sim': float})
             n_rows += chunk.shape[0]
             positives += (chunk.index[chunk['Language'].isin(languages) & chunk['sim'] == 1] + 1).tolist()
             triplets += (chunk.index[chunk['Language'].isin(languages) & chunk['sim'].isna()] + 1).tolist()
