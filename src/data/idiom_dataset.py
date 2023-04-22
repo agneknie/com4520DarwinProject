@@ -334,10 +334,11 @@ class BatchDataset(Dataset):
         return len(self.row_indices)
 
     def __getitem__(self, batch_idx):
+        indices = [self.row_indices[i] for i in batch_idx]
         # skip all rows not in the batch_idx, making sure to include the header
-        skiprows = set(range(self.total_rows + 1)) - set(batch_idx) - set([0])
+        skiprows = set(range(self.total_rows + 1)) - set(indices) - set([0])
         df = pd.read_csv(self.filepath, skiprows=skiprows)
-        assert df.shape[0] == len(batch_idx), f'Expected {len(batch_idx)} rows, got {df.shape[0]}'
+        assert df.shape[0] == len(indices), f'Expected {len(indices)} rows, got {df.shape[0]}'
 
         header, data = load_dataset(df, tokenize_idioms=self.tokenize_idioms, tokenize_idioms_ignore_case=self.tokenize_idioms_ignore_case, transform=self.transform)
         df = pd.DataFrame(data, columns=header)
