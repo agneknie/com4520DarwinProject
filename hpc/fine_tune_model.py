@@ -47,9 +47,10 @@ parser.add_argument('--batch-size', help='Batch size', required=True, type=int)
 parser.add_argument('--include-para-context', action='store_true', help='Append previous and next sentences')
 parser.add_argument('--en', action='store_true', help='Train on english data')
 parser.add_argument('--pt', action='store_true', help='Train on portuguese data')
+parser.add_argument('--load-in-batches', action='store_true', help='Load large dataset in batches')
 parser.add_argument('--tokenize-idioms', action='store_true', help='Include extra tokens for idioms')
 parser.add_argument('--seed', help='Random seed', required=True, type=int)
-parser.set_defaults(en=False, pt=False, tokenize_idioms=False, include_para_context=False)
+parser.set_defaults(en=False, pt=False, tokenize_idioms=False, include_para_context=False, load_in_batches=False)
 
 args = parser.parse_args()
 
@@ -75,5 +76,6 @@ model = fine_tune_model(
     languages=languages,
     num_epochs=args.num_epochs,
     batch_size=args.batch_size,
-    transform=transform
+    transform=transform,
+    load_in_batches=args.load_in_batches,
     )
