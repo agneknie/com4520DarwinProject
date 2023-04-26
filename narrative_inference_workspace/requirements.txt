@@ -3,4 +3,5 @@ spacy
 nltk
 torch
 ftfy
-transformers==2.4.0
+transformers
+tqdm
