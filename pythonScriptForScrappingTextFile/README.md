@@ -1,0 +1,1 @@
+This readme will in the future explain how to use this script. For now you will have to just read the code to understand it
