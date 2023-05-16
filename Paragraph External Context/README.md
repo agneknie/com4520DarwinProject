@@ -1,14 +1,16 @@
-Demo
+Code external to the project, used for paragraph level context inference gathering.
 
-Please download pretrained weights beforehand. 
+## Demo
 
-Requirements
+Please download pretrained weights beforehand.
+
+## Requirements
 
 python 3.6
 
 To install all requirements, run pip install -r requirements.txt
 
-Data Format 
+### Data Format 
 
 The code assumes the input text is in a json-formatted file with the following keys:
 
@@ -17,13 +19,13 @@ The code assumes the input text is in a json-formatted file with the following k
 'full_context': the narrative split into a list of sentences 
 
 
-Generation
+### Generation
 
 Para-M: python demo.py --model_dir /path/to/modeldir/ --model_type 'nomem' --decoding beam --beam 10 --source example.jsonl
 
 Para-M (mem): python demo.py --model_dir /path/to/modeldir/ --model_type 'mem' --decoding beam --beam 10 --source example.jsonl 
 
-Citing 
+### Citing 
 ```
 @article{Gabriel2021ParagraphLevelCT,
 
@@ -36,6 +38,6 @@ Citing
   year={2021}
   ```
 
-Note 
+### Note 
 
 For now, code must be run on a single GPU. 

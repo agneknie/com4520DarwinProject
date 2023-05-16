@@ -1,3 +1,5 @@
+One of the first iterations of the script, which was used to consume the GUTENBERG Project data. Later, other versions were developed, which can be found in the upper level of the repository.
+
 ## Idiom Sentence Collection
 
 Folder contains several scripts used to gather links, scrape text from them, separate it into sentences and then filter those sentences that contain idioms from a pre-defines list.
