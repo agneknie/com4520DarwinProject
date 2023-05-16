@@ -1,1 +1,0 @@
-One of the first iterations of the script, which was used to scrape the GUTENBERG Project data. Later, another version was developed, which can be found in the repository.
