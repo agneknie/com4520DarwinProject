@@ -3,7 +3,7 @@ from ast import literal_eval
 
 def appendInferencesToSentence(sentence, inferences):
   inferences = literal_eval(inferences)
-  return ','.join(inferences) + "[SEP]" + sentence
+  return ','.join([inferences[0],inferences[2],inferences[4],inferences[6],inferences[8]]) + "[SEP]" + sentence
 
 def main():
   fileName = "localLocal/silver_ds_5_local_local.csv"
@@ -14,14 +14,14 @@ def main():
   originalFile2 = open(fileName2, 'r', encoding='utf-8')
   originalFileReader2 = csv.reader(originalFile2)
 
-  newFileName = "localLocal/silver_ds_5_local_local_final.csv"
+  newFileName = "globalLocal/silver_ds_5_global_local_5_inferences.csv"
   newFile = open(newFileName, 'w', newline='', encoding='utf-8')
   newFileWriter = csv.writer(newFile)
 
   # create the new file
   next(originalFileReader2)
   headers = next(originalFileReader)
-  headers = headers[0:6] + ['sim','alternative_1','alternative_2']
+  headers = headers[0:9] + ['sentence_previous','sentence_next']
   newFileWriter.writerow(headers)
 
 
@@ -43,14 +43,16 @@ def main():
       if (alternative_2 != "empty"):
          alternative_2 = appendInferencesToSentence(alternative_2, inferences)
       
-      line = [line[0],line[1],line[2],line[3],
-              # appendInferencesToSentence(line2[4], inferences),
-              # appendInferencesToSentence(line2[5], inferences),
-              line[4], line[5],
+      line = [line2[0],line2[1],line2[2],line2[3],
+              appendInferencesToSentence(line2[4], inferences),
+              appendInferencesToSentence(line2[5], inferences),
+            #   line[4], line[5],
               line2[6],
               # line2[6],line2[9],line2[10],
               alternative_1,
-              alternative_2]
+              alternative_2,
+              sentence_previous,
+              sentence_next]
 
       #write to files
       newFileWriter.writerow(line)
