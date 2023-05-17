@@ -1,0 +1,1 @@
+The main parser, used for scrapping, consuming and preparing datasets from the books in the GUTENBERG Project.
