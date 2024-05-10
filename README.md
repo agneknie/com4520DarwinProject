@@ -1,6 +1,8 @@
-# Is Less More? Idiom Detection with Generalised Natural Language Models
+# Is Less More? Quality, Quantity and Context in Idiom Processing with Natural Language Models
 
-Adjacent code related to the report/publication, prepared as a Masters dissertation project on COM4520 at The University of Sheffield.
+Adjacent code related to the paper prepared for Joint Workshop on Multiword Expressions and Universal Dependencies ([MWE-UD 2024](https://multiword.org/mweud2024/)), 25th May, 2024. Collated with [LREC-COLING 2024](https://lrec-coling-2024.org/) in Torino, Italy.
+
+Originaly prepared as part of a Masters dissertation project on COM4520 at The University of Sheffield, with the name of "Is Less More? Idiom Detection with Generalised Natural Language Models".
 
 Created by: Agne Knietaite, Adam Allsebrook, Anton Minkov, Adam Tomaszewski, Norbert Slinko, Richard Johnson.
 
