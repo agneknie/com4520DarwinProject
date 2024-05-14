@@ -8,6 +8,8 @@ Created by: Agne Knietaite, Adam Allsebrook, Anton Minkov, Adam Tomaszewski, Nor
 
 Supervised by: Aline Villavicencio.
 
+![Paper Presentation Poster](Poster/Is_Less_More_Poster.png)
+
 ## Overview of the Repository
 
 The code is divided into two sections, `Model` and `Dataset` related, following the structure of the adjacent report. The subdirectories are almost always self-contained and have their own `README` files for clarity.
