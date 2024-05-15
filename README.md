@@ -8,6 +8,8 @@ Created by: Agne Knietaite, Adam Allsebrook, Anton Minkov, Adam Tomaszewski, Nor
 
 Supervised by: Aline Villavicencio.
 
+**Link to the paper: https://doi.org/10.48550/arXiv.2405.08497**
+
 ![Paper Presentation Poster](Poster/Is_Less_More_Poster.png)
 
 ## Overview of the Repository
