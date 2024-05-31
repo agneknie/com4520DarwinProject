@@ -7,6 +7,7 @@ Originaly prepared as part of a Masters dissertation project on COM4520 at The U
 Paper Authors: Agne Knietaite, Adam Allsebrook, Anton Minkov, Adam Tomaszewski, Norbert Slinko, Richard Johnson, Thomas Pickard, Aline Villavicencio, Dylan Phelps.
 
 **Link to the paper: https://doi.org/10.48550/arXiv.2405.08497**
+
 **Link to the NCSSB dataset: https://doi.org/10.15131/shef.data.25259722.v1**
 
 ![Paper Presentation Poster](Poster/Is_Less_More_Poster.png)
